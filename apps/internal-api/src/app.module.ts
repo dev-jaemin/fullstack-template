@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { OrderModule } from '@repo/order/server';
 import { HealthController } from './health.controller.js';
+import { OrderProxyController } from './order-proxy.controller.js';
 
-@Module({ controllers: [HealthController], imports: [OrderModule] })
+@Module({ controllers: [HealthController, OrderProxyController] })
 export class AppModule {}

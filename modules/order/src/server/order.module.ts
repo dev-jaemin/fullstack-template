@@ -5,13 +5,7 @@ import { OrderService } from './services/order.service.js';
 
 @Module({
   controllers: [OrderController],
-  providers: [
-    {
-      provide: OrderRepository,
-      useFactory: () => new OrderRepository(process.env['ORDER_STORE_PATH']),
-    },
-    OrderService,
-  ],
+  providers: [OrderRepository, OrderService],
   exports: [OrderService, OrderRepository],
 })
 export class OrderModule {}

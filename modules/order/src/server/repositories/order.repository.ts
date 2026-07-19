@@ -1,6 +1,5 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { OrderSchema, type Order, type OrderStatus } from '../../contract/index.js';
+import { InMemoryDatabase } from '@repo/platform';
+import type { Order, OrderStatus } from '../../contract/index.js';
 import { createOrderFixture } from '../../testing/index.js';
 
 const seedOrders: Order[] = [
@@ -31,61 +30,21 @@ const seedOrders: Order[] = [
 ];
 
 export class OrderRepository {
-  constructor(private readonly storePath?: string) {
-    if (storePath) this.ensureStore();
-  }
-
-  private readonly orders = [...seedOrders];
-
-  private ensureStore(): void {
-    if (!this.storePath) return;
-    try {
-      readFileSync(this.storePath, 'utf8');
-    } catch {
-      this.writeOrders(seedOrders);
-    }
-  }
-
-  private readOrders(): Order[] {
-    if (!this.storePath) return this.orders.map((order) => ({ ...order }));
-    try {
-      const parsed: unknown = JSON.parse(readFileSync(this.storePath, 'utf8'));
-      return OrderSchema.array().parse(parsed);
-    } catch {
-      this.writeOrders(seedOrders);
-      return seedOrders.map((order) => ({ ...order }));
-    }
-  }
-
-  private writeOrders(orders: Order[]): void {
-    if (!this.storePath) return;
-    mkdirSync(dirname(this.storePath), { recursive: true });
-    const temporaryPath = `${this.storePath}.${process.pid}.tmp`;
-    writeFileSync(temporaryPath, JSON.stringify(orders, null, 2));
-    renameSync(temporaryPath, this.storePath);
-  }
+  private readonly database = new InMemoryDatabase<Order>(seedOrders);
 
   findAll(status?: OrderStatus): Order[] {
-    return this.readOrders()
+    return this.database
+      .findAll()
       .filter((order) => !status || order.status === status)
       .map((order) => ({ ...order }));
   }
   findById(id: string): Order | undefined {
-    const order = this.readOrders().find((current) => current.id === id);
-    return order ? { ...order } : undefined;
+    return this.database.findById(id);
   }
   save(order: Order): Order {
-    const orders = this.readOrders();
-    orders.push(order);
-    this.writeOrders(orders);
-    return { ...order };
+    return this.database.insert(order);
   }
   update(order: Order): Order {
-    const orders = this.readOrders();
-    const index = orders.findIndex((current) => current.id === order.id);
-    if (index < 0) throw new Error('Order not found');
-    orders[index] = order;
-    this.writeOrders(orders);
-    return { ...order };
+    return this.database.update(order);
   }
 }
