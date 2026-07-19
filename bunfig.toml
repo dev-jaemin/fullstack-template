@@ -1,0 +1,5 @@
+logLevel = "warn"
+
+[install]
+exact = true
+peer = true
